@@ -1,6 +1,9 @@
 image:
   tag: 0.1.0
 
+cloud:
+  region: us-west-2
+
 resources:
   limits:
    cpu: 300m

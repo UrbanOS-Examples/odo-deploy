@@ -53,6 +53,7 @@ def deployTo(applicationName, environment, extraArgs = '') {
             helm upgrade --install odo scdp/odo \
                 --namespace=streaming-services \
                 --values=odo.yaml \
+                --set cloud.fileBucket=${environment}-host-dataset-files \
                 ${extraArgs}
         """.trim())
     }

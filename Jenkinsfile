@@ -51,6 +51,7 @@ def deployTo(applicationName, environment, extraArgs = '') {
             helm repo add scdp https://smartcitiesdata.github.io/charts
             helm repo update
             helm upgrade --install odo scdp/odo \
+                --version 0.2.3 \
                 --namespace=streaming-services \
                 --values=odo.yaml \
                 --set cloud.fileBucket=${environment}-host-dataset-files \

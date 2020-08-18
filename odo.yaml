@@ -1,5 +1,5 @@
 image:
-  tag: 0.6.0
+  tag: wip-port
 
 cloud:
   region: us-west-2

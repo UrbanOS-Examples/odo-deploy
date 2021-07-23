@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+
+help() {
+    cat <<EOF
+Usage: ${0} [OPTIONS]
+Specialized Terraform initialization script for the Smart Columbus Operating System.  Used
+to help with the flags and file state requirements for running a terraform init, and to help
+users select a workspace before attempting to manipulate resources.
+
+Options:
+-s, --sandbox                    Initialize Terraform to use the sandbox backend config.  If not
+                             passed, the alm backend config will be used
+-w, --workspace <workspace>  The workspace to select/create after being initialized. If
+                             not passed, you will be prompted to select or create a workspace
+-a, --all-features           Enables all features
+-h, --help
+EOF
+}
+
+_die() {
+    >&2 echo "${@}"
+    exit 1
+}
+
+_file() {
+    local -r filename="${1}"
+    [ -f "${filename}" ] || return 1
+    echo ${filename}
+}
+
+_get_tfvar() {
+    local -r varfile=$(_file "${1}") || _die "Failed to load var file \"${1}\""
+    local -r variable=${2}
+
+    _json2hcl -reverse < ${varfile} | jq --raw-output ".${variable}" || \
+        _die "Failed to parse variable \"${variable}\" out of \"${varfile}\""
+}
+
+_json2hcl() {
+    local -r json2hcl=$(_file "${git_root}/shared/scripts/bin/json2hcl.v0.0.6.$(uname -s).$(uname -m)") || \
+        _die "Unable to find json2hcl for \"$(uname -sm)\" in ${git_root}/shared/scripts/bin/"
+    "${json2hcl}" "${@}"
+}
+
+_enable_feature() {
+    feature=$1
+    echo "enabling feature ${feature}"
+    feature_file=$(_file ${PWD}/"features/${feature}.hcl") ||
+        _die "Cannot find file for feature \"${feature}\" (${feature_file})"
+
+    ln -s "${feature_file}" _feature_"${feature}".tf || _die "failed adding feature"
+}
+
+set -o pipefail
+
+git_root=$(git rev-parse --show-toplevel) || _die "Failed to resolve git_root.  Are you in a git repository?"
+
+backend_config="${git_root}/shared/backends/alm.conf"
+all_features=false
+
+until [ ${#} -eq 0 ]; do
+    case "${1}" in
+        -s|--sandbox)
+            backend_config="${git_root}/shared/backends/sandbox-alm.conf"
+            ;;
+        -w|--workspace)
+            workspace=${2}
+            shift
+            ;;
+        -a|--all-features)
+            all_features=true
+            ;;
+        -h|--help)
+            help
+            exit 0
+            ;;
+    esac
+    shift
+done
+
+#rm -f _feature*.tf
+
+# if ${all_features}; then
+#     enabled_features=$(ls features/ | cut -d '.' -f 1)
+# else
+#     varfile=$(_file "variables/${workspace}.tfvars" || _file "variables/sandbox.tfvars") ||
+#         _die "Failed to find a tfvars file for the workspace \"${workspace}\""
+#     echo "Using \"${varfile}\""
+
+#     if [ "null" != "$(_get_tfvar "${varfile}" enabled_features)" ]; then
+#         enabled_features=$(_get_tfvar "${varfile}" enabled_features | jq --raw-output '.[]')
+#     fi
+# fi
+
+# for feature in ${enabled_features}; do
+#     _enable_feature $feature
+# done
+
+echo "removing .terraform"
+rm -rf .terraform
+
+echo "initializing terraform"
+terraform init -backend-config=${backend_config} || _die "Failed to initialize terraform"
+
+workspaces=$(terraform workspace list | cut -c 3- | sort -f | tail -n +2) || _die "Failed to list workspaces"
+
+if [ -z "${workspace}" ]; then
+    echo "Workspaces available:"
+    echo "${workspaces}"
+    echo
+
+    read -p "Select a workspace or name a new one to be created: " workspace
+fi
+
+if (echo "${workspaces}" | grep -xq ${workspace}); then
+    terraform workspace select ${workspace} || _die "Failed to select workspace \"${workspace}\""
+else
+    terraform workspace new ${workspace} || _die "Failed to create new workspace \"${workspace}\""
+fi
+
+exit 0

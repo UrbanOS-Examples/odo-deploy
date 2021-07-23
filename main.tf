@@ -24,7 +24,7 @@ resource "helm_release" "odo" {
   # The following line exists to quickly be commented out
   # for local development.
   #repository       = "../charts"
-  version          = "1.1.0"
+  version          = "0.3.0"
   chart            = "odo"
   namespace        = "odo"
   create_namespace = true

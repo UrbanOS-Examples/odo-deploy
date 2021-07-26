@@ -12,11 +12,17 @@ resource "local_file" "kubeconfig" {
 
 provider "helm" {
   version = ">= 2.1"
+  debug = true
   kubernetes {
-    config_path = local_file.kubeconfig.filename
+    host                   = data.terraform_remote_state.env_remote_state.outputs.eks_cluster_endpoint
+    cluster_ca_certificate = base64decode(data.terraform_remote_state.env_remote_state.outputs.eks_cluster_certificate_authority_data)
+    exec {
+      api_version = "client.authentication.k8s.io/v1alpha1"
+      args        = ["token", "-i", data.terraform_remote_state.env_remote_state.outputs.eks_cluster_name, "-r", var.eks_role_arn]
+      command     = "aws-iam-authenticator"
+    }
   }
 }
-
 
 resource "helm_release" "odo" {
   name       = "odo"
@@ -26,9 +32,10 @@ resource "helm_release" "odo" {
   #repository       = "../charts"
   version          = "0.3.0"
   chart            = "odo"
-  namespace        = "odo"
+  namespace        = "streaming-services"
   create_namespace = true
   wait             = false
+  recreate_pods    = var.recreate_pods
 
 
   values = [
@@ -71,4 +78,14 @@ variable "alm_role_arn" {
 
 variable "odo_tag" {
   description = "The docker image tag for odo"
+}
+
+variable "recreate_pods" {
+  description = "Force helm to recreate pods?"
+  default     = false
+}
+
+variable "eks_role_arn" {
+  description = "THe AWS ARN of the IAM role to access the EKS cluster"
+  default =  "arn:aws:iam::073132350570:role/jenkins_role"
 }

@@ -1,3 +1,8 @@
+replicaCount: 1
+
+image:
+  tag: development
+
 cloud:
   region: us-west-2
 

@@ -5,6 +5,11 @@ terraform {
   }
 }
 
+resource "local_file" "kubeconfig" {
+  filename          = "${path.module}/outputs/kubeconfig"
+  sensitive_content = data.terraform_remote_state.env_remote_state.outputs.eks_cluster_kubeconfig
+}
+
 provider "helm" {
   version = ">= 2.1"
   debug = true

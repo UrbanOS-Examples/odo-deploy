@@ -1,3 +1,22 @@
+provider "aws" {
+  version = "~> 3.0"
+  region  = var.region
+
+  assume_role {
+    role_arn = var.os_role_arn
+  }
+}
+
+provider "aws" {
+  alias   = "alm"
+  version = "~> 3.0"
+  region  = var.alm_region
+
+  assume_role {
+    role_arn = var.alm_role_arn
+  }
+}
+
 terraform {
   backend "s3" {
     key     = "odo"
@@ -25,13 +44,17 @@ provider "helm" {
   }
 }
 
+resource "aws_iam_access_key" "odo" {
+  user = data.terraform_remote_state.env_remote_state.outputs.odo_aws_user_name
+}
+
 resource "helm_release" "odo" {
   name       = "odo"
   repository = "https://Datastillery.github.io/charts"
   # The following line exists to quickly be commented out
   # for local development.
   #repository       = "../charts"
-  version          = "0.3.0"
+  version          = "1.1.0"
   chart            = "odo"
   namespace        = "streaming-services"
   create_namespace = true
@@ -45,6 +68,16 @@ resource "helm_release" "odo" {
   set {
     name  = "image.tag"
     value = var.odo_tag
+  }
+
+  set_sensitive {
+    name = "odo.aws.acessKeySecret"
+    value = aws_iam_access_key.odo.secret
+  }
+
+   set_sensitive {
+    name = "odo.aws.accessKeyId"
+    value = aws_iam_access_key.odo.id
   }
 }
 
@@ -68,6 +101,16 @@ variable "state_bucket" {
 variable "alm_region" {
   description = "Region of ALM resources"
   default     = "us-east-2"
+}
+
+variable "region" {
+  description = "Region of operating system resources"
+  default     = "us-west-2"
+}
+
+variable "os_role_arn" {
+  description = "The ARN for the assume role for OS access"
+  default     = "arn:aws:iam::199837183662:role/jenkins_role"
 }
 
 variable "alm_role_arn" {

@@ -61,7 +61,7 @@ resource "helm_release" "odo" {
   }
 
   set_sensitive {
-    name = "aws.acessKeySecret"
+    name = "aws.accessKeySecret"
     value = aws_iam_access_key.odo.secret
   }
 

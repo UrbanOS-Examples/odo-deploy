@@ -7,16 +7,6 @@ provider "aws" {
   }
 }
 
-provider "aws" {
-  alias   = "alm"
-  version = "~> 3.0"
-  region  = var.alm_region
-
-  assume_role {
-    role_arn = var.alm_role_arn
-  }
-}
-
 terraform {
   backend "s3" {
     key     = "odo"

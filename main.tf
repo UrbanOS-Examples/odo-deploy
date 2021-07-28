@@ -3,7 +3,7 @@ provider "aws" {
   region  = var.region
 
   assume_role {
-    role_arn = var.os_role_arn
+    role_arn = var.eks_role_arn
   }
 }
 
@@ -96,11 +96,6 @@ variable "alm_region" {
 variable "region" {
   description = "Region of operating system resources"
   default     = "us-west-2"
-}
-
-variable "os_role_arn" {
-  description = "The ARN for the assume role for OS access"
-  default     = "arn:aws:iam::199837183662:role/jenkins_role"
 }
 
 variable "alm_role_arn" {

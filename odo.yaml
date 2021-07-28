@@ -1,3 +1,7 @@
+global:
+  kafka:
+    brokers: "streaming-service-kafka-bootstrap.streaming-prime:9092"
+
 replicaCount: 1
 
 cloud:
